@@ -1,4 +1,4 @@
-#include <stdio.h>
+    #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
@@ -31,8 +31,13 @@ void on_child_exit(int sig) {
 
 // Function to set up environment
 void setup_environment() {
-    // Example: Change directory to current working directory
-    chdir("/path/to/current/working/directory");
+    char* line = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
+    if (line == NULL) {
+        printf("Memory allocation failed\n");
+    }
+    printf("Enter Your Current Directory: ");
+    fgets(line, MAX_LINE_LENGTH, stdin);
+    chdir(line);
 }
 
 // Parent main function

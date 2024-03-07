@@ -104,6 +104,20 @@ char* read_input() {
     return line;
 }
 
+void removeCharFromString(char *str, char ch) {
+    int i, j;
+
+    // Iterate through the string
+    for (i = 0, j = 0; str[i] != '\0'; i++) {
+        // If the current character is not the one to remove
+        if (str[i] != ch) {
+            str[j] = str[i]; // Move it to the new position
+            j++;
+        }
+    }
+    str[j] = '\0'; // Add null terminator to end the new string
+}
+
 char **parseInput(char *line) {
     // char line[MAX_LINE_LENGTH];
     char **words = malloc(MAX_NUM_WORDS * sizeof(char *));
@@ -116,8 +130,12 @@ char **parseInput(char *line) {
     // fgets(line, sizeof(line), stdin);
     char *singleQ = "'";
     char *doubleQ = "\"";
-    char *space = "";
-
+    char *space = " ";
+    removeCharFromString(line, '"');
+    removeCharFromString(line, '\'');
+    // replace_vars(line, singleQ, space);
+    // replace_vars(line, doubleQ, space);
+    printf("%s", line);
     char *token = strtok(line, " \n");
     int num_words = 0;
     while (token != NULL && num_words < MAX_NUM_WORDS) {
@@ -131,15 +149,18 @@ char **parseInput(char *line) {
     }
     words[num_words] = NULL; // Null-terminate the array
     // printf("%s -> %s",words[num_words], words[num_words-1]);
-    for(int i = 1; i < num_words; i++){
-        replace_vars(words[i], singleQ, space);
-        replace_vars(words[i], doubleQ, space);
-        // printf("%s\n",words[i]);
-    }
+    // for(int i = 1; i < num_words; i++){
+    //     replace_vars(words[i], singleQ, space);
+    //     replace_vars(words[i], doubleQ, space);
+    //     // printf("%s\n",words[i]);
+    // }
     command_size = num_words;
     return words;
 }
 void getVar(char *input){
+    char *equal = "=";
+    char *result = strstr(input, equal);
+    if(result == NULL)return;
     char *token, *left, *right;
     token = strtok(input, "="); // Tokenize the string using '=' as delimiter
     if (token != NULL) {
@@ -159,7 +180,7 @@ void getVar(char *input){
     globalVariables[variables_size] = left;
     gv_values[variables_size] = right;
     variables_size++;
-    printf("variable name: %s , variable value = %s,  varsSize = %d \n", left, right, variables_size);
+    // printf("variable name: %s , variable value = %s,  varsSize = %d \n", left, right, variables_size);
 }
 
 
@@ -229,10 +250,10 @@ void shell(){
         // printf("%s\n", line);
         char **command = parseInput(line);
         if(command_size == 0)continue;
-        for(int i = 0; i < command_size; i++){
-        //     // evaluate_expression(command[i]);
-            printf("commands: %s\n", command[i]);
-        }
+        // for(int i = 0; i < command_size; i++){
+        // //     // evaluate_expression(command[i]);
+        //     printf("commands: %s\n", command[i]);
+        // }
         if(strcmp(command[0], "export") == 0 || strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0){
             execute_shell_builtin(command);
             continue;

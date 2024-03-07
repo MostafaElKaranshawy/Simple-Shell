@@ -5,62 +5,13 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#define MAX_LINE_LENGTH 200
-#define MAX_NUM_WORDS 100
+#define MAX_LINE_LENGTH 20000
+#define MAX_NUM_WORDS 1000
 
 char *globalVariables[10000];
 char *gv_values[10000];
 int variables_size = 0;
 int command_size;
-char **parseInput() {
-    char line[MAX_LINE_LENGTH];
-    char **words = malloc(MAX_NUM_WORDS * sizeof(char *));
-    if (words == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        exit(1);
-    }
-
-    printf("Moka's_Shell_command: ");
-    fgets(line, sizeof(line), stdin);
-
-    char *token = strtok(line, " \n");
-    int num_words = 0;
-    while (token != NULL && num_words < MAX_NUM_WORDS) {
-        words[num_words] = strdup(token);
-        if (words[num_words] == NULL) {
-            fprintf(stderr, "Memory allocation failed\n");
-            exit(1);
-        }
-        num_words++;
-        token = strtok(NULL, " \n");
-    }
-    words[num_words] = NULL; // Null-terminate the array
-    // printf("%s -> %s",words[num_words], words[num_words-1]);
-    command_size = num_words;
-    return words;
-}
-void getVar(char *input){
-    char *token, *left, *right;
-    token = strtok(input, "="); // Tokenize the string using '=' as delimiter
-    if (token != NULL) {
-        left = strdup(token); // Store the left part of the string
-        token = strtok(NULL, "="); // Move to the next token
-        if (token != NULL) {
-            right = strdup(token); // Store the right part of the string
-        } else {
-            right = NULL; // If there's no right part, set it to NULL
-        }
-    } else {
-        left = NULL; // If there's no left part, set it to NULL
-    }
-    if(left == NULL || right == NULL){
-        return;
-    }
-    globalVariables[variables_size] = left;
-    gv_values[variables_size] = right;
-    variables_size++;
-    printf("variable name: %s , variable value = %s,  varsSize = %d \n", left, right, variables_size);
-}
 
 void replace_vars(char *string, const char *substring, const char *replacement){
     char *temp = strstr(string, substring); // Find the first occurrence of the substring
@@ -105,6 +56,69 @@ void replace_vars(char *string, const char *substring, const char *replacement){
     strcpy(string, buffer);
     // printf("\n from replacing:  %s\n", string);
 }
+
+char **parseInput() {
+    char line[MAX_LINE_LENGTH];
+    char **words = malloc(MAX_NUM_WORDS * sizeof(char *));
+    if (words == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
+
+    printf("Moka's_Shell_command: ");
+    fgets(line, sizeof(line), stdin);
+    char *singleQ = "'";
+    char *doubleQ = "\"";
+    char *space = "";
+    // replace_vars(line, singleQ, space);
+    // printf("%s", line);
+    // replace_vars(line, doubleQ, space);
+    // printf("%s", line);
+    char *token = strtok(line, " \n");
+    int num_words = 0;
+    while (token != NULL && num_words < MAX_NUM_WORDS) {
+        words[num_words] = strdup(token);
+        if (words[num_words] == NULL) {
+            fprintf(stderr, "Memory allocation failed\n");
+            exit(1);
+        }
+        num_words++;
+        token = strtok(NULL, " \n");
+    }
+    words[num_words] = NULL; // Null-terminate the array
+    // printf("%s -> %s",words[num_words], words[num_words-1]);
+    for(int i = 1; i < num_words; i++){
+        replace_vars(words[i], singleQ, space);
+        replace_vars(words[i], doubleQ, space);
+        // printf("%s\n",words[i]);
+    }
+    command_size = num_words;
+    return words;
+}
+void getVar(char *input){
+    char *token, *left, *right;
+    token = strtok(input, "="); // Tokenize the string using '=' as delimiter
+    if (token != NULL) {
+        left = strdup(token); // Store the left part of the string
+        token = strtok(NULL, "="); // Move to the next token
+        if (token != NULL) {
+            right = strdup(token); // Store the right part of the string
+        } else {
+            right = NULL; // If there's no right part, set it to NULL
+        }
+    } else {
+        left = NULL; // If there's no left part, set it to NULL
+    }
+    if(left == NULL || right == NULL){
+        return;
+    }
+    globalVariables[variables_size] = left;
+    gv_values[variables_size] = right;
+    variables_size++;
+    printf("variable name: %s , variable value = %s,  varsSize = %d \n", left, right, variables_size);
+}
+
+
 char *concatenateStrings(const char *str1, const char *str2) {
     // Calculate the length of the concatenated string
     size_t len1 = strlen(str1);
@@ -148,12 +162,17 @@ void execute_shell_builtin(char** command){
     else if(strcmp(command[0], "echo") == 0){
         for(int i = 1;;i++){
             if(command[i] == NULL)break;
-            printf("%s ", command[i]);
+            // printf("%s ", command[i]);
         }
         printf("\n");
     }
     else if(strcmp(command[0], "export") == 0){
         getVar(command[1]);
+        char *space = " ";
+        for(int i =2; i < command_size; i++){
+            strcat(gv_values[variables_size-1], space);
+            strcat(gv_values[variables_size-1], command[i]);
+        }
     }
 }
 
@@ -161,6 +180,7 @@ void shell(){
     bool flag = true;
     do {
         char **command = parseInput();
+        if(command_size == 0)continue;
         for(int i = 1; i < command_size; i++){
             evaluate_expression(command[i]);
         }
@@ -172,20 +192,38 @@ void shell(){
             flag = false;
             exit(0);
         }
-        int pid = fork();
-        if(pid == 0){
-            if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0 || strcmp(command[0], "export") == 0 ){
-                exit(0);
+        if(strcmp(command[command_size-1] ,"&") == 0){
+            printf("Background\n");
+            command[command_size-1] = NULL;
+            int pid = fork();
+            if(pid == 0){
+                if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0 || strcmp(command[0], "export") == 0 ){
+                    exit(0);
+                }
+                else{
+                    execvp(command[0], command);
+                    printf("Error! unsupported command!\n");
+                    exit(0);
+                }
             }
-            else{
-                execvp(command[0], command);
-                printf("Error! unsupported command!\n");
-            }
-            // exit(0);
         }
         else{
-            int status;
-            waitpid(pid, &status, 0);
+            int pid = fork();
+            if(pid == 0){
+                if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0 || strcmp(command[0], "export") == 0 ){
+                    exit(0);
+                }
+                else{
+                    // if()
+                    execvp(command[0], command);
+                    printf("Error! unsupported command!\n");
+                    exit(0);
+                }
+            }
+            else{
+                int status;
+                waitpid(pid, &status, 0);
+            }
         }
     }
     while(flag);

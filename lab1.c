@@ -4,14 +4,48 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #define MAX_LINE_LENGTH 20000
 #define MAX_NUM_WORDS 1000
+
+void shell();
 
 char *globalVariables[10000];
 char *gv_values[10000];
 int variables_size = 0;
 int command_size;
+
+// Signal handler function
+void on_child_exit(int sig) {
+    int status;
+    pid_t pid;
+
+    // Reap zombie processes
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        printf("Child process %d terminated\n", pid);
+        // Write to log file or perform other actions
+        // write_to_log_file("Child terminated");
+    }
+}
+
+// Function to set up environment
+void setup_environment() {
+    // Example: Change directory to current working directory
+    chdir("/path/to/current/working/directory");
+}
+
+// Parent main function
+void parent_main() {
+    // Register signal handler for SIGCHLD
+    signal(SIGCHLD, on_child_exit);
+
+    // Set up environment
+    setup_environment();
+
+    // Shell function
+    shell();
+}
 
 void replace_vars(char *string, const char *substring, const char *replacement){
     char *temp = strstr(string, substring); // Find the first occurrence of the substring
@@ -57,23 +91,33 @@ void replace_vars(char *string, const char *substring, const char *replacement){
     // printf("\n from replacing:  %s\n", string);
 }
 
-char **parseInput() {
-    char line[MAX_LINE_LENGTH];
+char* read_input() {
+    char* line = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
+    if (line == NULL) {
+        printf("Memory allocation failed\n");
+        return NULL;
+    }
+
+    printf("Moka's Shell Command: ");
+    fgets(line, MAX_LINE_LENGTH, stdin);
+
+    return line;
+}
+
+char **parseInput(char *line) {
+    // char line[MAX_LINE_LENGTH];
     char **words = malloc(MAX_NUM_WORDS * sizeof(char *));
     if (words == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
         exit(1);
     }
 
-    printf("Moka's_Shell_command: ");
-    fgets(line, sizeof(line), stdin);
+    // printf("Moka's_Shell_command: ");
+    // fgets(line, sizeof(line), stdin);
     char *singleQ = "'";
     char *doubleQ = "\"";
     char *space = "";
-    // replace_vars(line, singleQ, space);
-    // printf("%s", line);
-    // replace_vars(line, doubleQ, space);
-    // printf("%s", line);
+
     char *token = strtok(line, " \n");
     int num_words = 0;
     while (token != NULL && num_words < MAX_NUM_WORDS) {
@@ -162,7 +206,7 @@ void execute_shell_builtin(char** command){
     else if(strcmp(command[0], "echo") == 0){
         for(int i = 1;;i++){
             if(command[i] == NULL)break;
-            // printf("%s ", command[i]);
+            printf("%s ", command[i]);
         }
         printf("\n");
     }
@@ -179,10 +223,15 @@ void execute_shell_builtin(char** command){
 void shell(){
     bool flag = true;
     do {
-        char **command = parseInput();
+        char *line = read_input();
+        // printf("%s\n", line);
+        evaluate_expression(line);
+        // printf("%s\n", line);
+        char **command = parseInput(line);
         if(command_size == 0)continue;
-        for(int i = 1; i < command_size; i++){
-            evaluate_expression(command[i]);
+        for(int i = 0; i < command_size; i++){
+        //     // evaluate_expression(command[i]);
+            printf("commands: %s\n", command[i]);
         }
         if(strcmp(command[0], "export") == 0 || strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0){
             execute_shell_builtin(command);
@@ -194,7 +243,9 @@ void shell(){
         }
         if(strcmp(command[command_size-1] ,"&") == 0){
             printf("Background\n");
+            // printf("%s\n", command[command_size-1]);
             command[command_size-1] = NULL;
+            // printf("%s\n", command[command_size-2]);
             int pid = fork();
             if(pid == 0){
                 if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0 || strcmp(command[0], "export") == 0 ){
@@ -229,7 +280,7 @@ void shell(){
     while(flag);
 }
 int main(){
-
-    shell();
+    parent_main();
+    // shell();
     return 0;
 }

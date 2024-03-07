@@ -168,19 +168,20 @@ void shell(){
             execute_shell_builtin(command);
             continue;
         }
+        if(strcmp(command[0], "exit") == 0){
+            flag = false;
+            exit(0);
+        }
         int pid = fork();
         if(pid == 0){
-            if(strcmp(command[0], "exit") == 0){
-                flag = false;
+            if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0 || strcmp(command[0], "export") == 0 ){
                 exit(0);
-            }
-            if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0){
             }
             else{
                 execvp(command[0], command);
                 printf("Error! unsupported command!\n");
             }
-            exit(0);
+            // exit(0);
         }
         else{
             int status;

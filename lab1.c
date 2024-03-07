@@ -56,7 +56,6 @@ void getVar(char *input){
     if(left == NULL || right == NULL){
         return;
     }
-    strcat(right," ");
     globalVariables[variables_size] = left;
     gv_values[variables_size] = right;
     variables_size++;
@@ -128,15 +127,15 @@ char *concatenateStrings(const char *str1, const char *str2) {
     return result;
 }
 void evaluate_expression(char *string){
-    char *substring = "$";
     char *space = " ";
     // printf("var size: %d\n", variables_size);
-    for(int i = 0; i< variables_size; i++){
+    for(int i = 0; i < variables_size; i++){
+        char *substring = "$";
         // printf("%s\n", globalVariables[i]);
         // strcat(substring,globalVariables[i]);
         substring = concatenateStrings(substring, globalVariables[i]);
         // printf("")
-        // strcat(substring, space);
+        // substring = (substring, space);
         char *replacement = gv_values[i];
         replace_vars(string, substring, replacement);
     }
@@ -156,52 +155,40 @@ void execute_shell_builtin(char** command){
     else if(strcmp(command[0], "export") == 0){
         getVar(command[1]);
     }
-    // exit(0);
 }
 
 void shell(){
     bool flag = true;
     do {
         char **command = parseInput();
-        // printf("%d", command_size);
-        if(command_size > 1){
-            evaluate_expression(command[1]);
-            // printf("%s", command[1]);
+        for(int i = 1; i < command_size; i++){
+            evaluate_expression(command[i]);
         }
-        if(strcmp(command[0], "export") == 0){
+        if(strcmp(command[0], "export") == 0 || strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0){
             execute_shell_builtin(command);
             continue;
         }
         int pid = fork();
         if(pid == 0){
-            // printf("hello from child\n");
             if(strcmp(command[0], "exit") == 0){
                 flag = false;
-                // exit(0);
+                exit(0);
             }
-            if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0 || strcmp(command[0], "export") == 0){
-                execute_shell_builtin(command);
+            if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0){
             }
             else{
                 execvp(command[0], command);
                 printf("Error! unsupported command!\n");
-                // exit(0);
             }
             exit(0);
         }
         else{
-            // if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0 || strcmp(command[0], "export") == 0){
-            //     execute_shell_builtin(command);
-            // }
-            // printf("hello from parent\n");
             int status;
-            // printf("%d\n", strlen(command));
             waitpid(pid, &status, 0);
         }
     }
     while(flag);
 }
-
 int main(){
 
     shell();

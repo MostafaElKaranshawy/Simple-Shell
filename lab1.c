@@ -10,22 +10,36 @@
 #define MAX_NUM_WORDS 1000
 
 void shell();
-
+FILE *log_file;
+FILE *history;
 char *globalVariables[10000];
 char *gv_values[10000];
 int variables_size = 0;
 int command_size;
+
+void write_to_file(char *line, FILE *file){
+    // log_file = fopen("logs.txt", "a");
+    fprintf(file, "%s", line);
+    // printf("Write to the file done\n");
+    fclose(file);
+}
 
 // Signal handler function
 void on_child_exit(int sig) {
     int status;
     pid_t pid;
 
+    char *process = "Child process terminated\n";
+    log_file = fopen("logs.txt", "a");
+    write_to_file(process, log_file);
+    // fclose(log_file);
     // Reap zombie processes
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-        printf("Child process %d terminated\n", pid);
+        printf("\nChild process %d terminated\n", pid);
+        // printf("Moka's Shell Commad: ");
         // Write to log file or perform other actions
         // write_to_log_file("Child terminated");
+
     }
 }
 
@@ -35,8 +49,9 @@ void setup_environment() {
     if (line == NULL) {
         printf("Memory allocation failed\n");
     }
-    printf("Enter Your Current Directory: ");
-    fgets(line, MAX_LINE_LENGTH, stdin);
+    line = "/home/mustafa/Desktop/OS";
+    // printf("Enter Your Current Directory: ");
+    // fgets(line, MAX_LINE_LENGTH, stdin);
     chdir(line);
 }
 
@@ -140,7 +155,7 @@ char **parseInput(char *line) {
     removeCharFromString(line, '\'');
     // replace_vars(line, singleQ, space);
     // replace_vars(line, doubleQ, space);
-    printf("%s", line);
+    // printf("%s", line);
     char *token = strtok(line, " \n");
     int num_words = 0;
     while (token != NULL && num_words < MAX_NUM_WORDS) {
@@ -250,6 +265,8 @@ void shell(){
     bool flag = true;
     do {
         char *line = read_input();
+        history = fopen("history.txt", "a");
+        write_to_file(line, history);
         // printf("%s\n", line);
         evaluate_expression(line);
         // printf("%s\n", line);

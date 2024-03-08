@@ -1,0 +1,19 @@
+pwd
+ls
+ls -l
+export x="-a -l -h"
+ls $x
+gedit
+gedit &
+pwd
+gedit
+pwd
+gedit
+gedit &
+ls
+pwd
+gedit
+gedit &
+ls
+gedit &
+ls

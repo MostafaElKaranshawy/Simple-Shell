@@ -17,10 +17,9 @@ char *gv_values[10000];
 int variables_size = 0;
 int command_size;
 
+
 void write_to_file(char *line, FILE *file){
-    // log_file = fopen("logs.txt", "a");
     fprintf(file, "%s", line);
-    // printf("Write to the file done\n");
     fclose(file);
 }
 
@@ -32,31 +31,26 @@ void on_child_exit(int sig) {
     char *process = "Child process terminated\n";
     log_file = fopen("logs.txt", "a");
     write_to_file(process, log_file);
-    // fclose(log_file);
+
     // Reap zombie processes
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
         printf("\nChild process %d terminated\n", pid);
-        // printf("Moka's Shell Commad: ");
-        // Write to log file or perform other actions
-        // write_to_log_file("Child terminated");
-
     }
 }
 
-// Function to set up environment
+// Set up environment
 void setup_environment() {
     char* line = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
     if (line == NULL) {
         printf("Memory allocation failed\n");
     }
     line = "/home/mustafa/Desktop/OS";
-    // printf("Enter Your Current Directory: ");
-    // fgets(line, MAX_LINE_LENGTH, stdin);
     chdir(line);
 }
 
 // Parent main function
 void parent_main() {
+
     // Register signal handler for SIGCHLD
     signal(SIGCHLD, on_child_exit);
 
@@ -67,6 +61,8 @@ void parent_main() {
     shell();
 }
 
+
+// Replace Command variables with its values Function.
 void replace_vars(char *string, const char *substring, const char *replacement){
     char *temp = strstr(string, substring); // Find the first occurrence of the substring
     if (temp == NULL) {
@@ -108,9 +104,9 @@ void replace_vars(char *string, const char *substring, const char *replacement){
 
     // Copy the modified string back to the original string
     strcpy(string, buffer);
-    // printf("\n from replacing:  %s\n", string);
 }
 
+// Read command function.
 char* read_input() {
     char* line = (char*)malloc(MAX_LINE_LENGTH * sizeof(char));
     if (line == NULL) {
@@ -118,12 +114,14 @@ char* read_input() {
         return NULL;
     }
 
+    // Take input.
     printf("Moka's Shell Command: ");
     fgets(line, MAX_LINE_LENGTH, stdin);
 
     return line;
 }
 
+// Handle quotes Function.
 void removeCharFromString(char *str, char ch) {
     int i, j;
 
@@ -138,24 +136,19 @@ void removeCharFromString(char *str, char ch) {
     str[j] = '\0'; // Add null terminator to end the new string
 }
 
+// Parse input function.
 char **parseInput(char *line) {
-    // char line[MAX_LINE_LENGTH];
     char **words = malloc(MAX_NUM_WORDS * sizeof(char *));
     if (words == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
         exit(1);
     }
 
-    // printf("Moka's_Shell_command: ");
-    // fgets(line, sizeof(line), stdin);
     char *singleQ = "'";
     char *doubleQ = "\"";
     char *space = " ";
     removeCharFromString(line, '"');
     removeCharFromString(line, '\'');
-    // replace_vars(line, singleQ, space);
-    // replace_vars(line, doubleQ, space);
-    // printf("%s", line);
     char *token = strtok(line, " \n");
     int num_words = 0;
     while (token != NULL && num_words < MAX_NUM_WORDS) {
@@ -168,15 +161,11 @@ char **parseInput(char *line) {
         token = strtok(NULL, " \n");
     }
     words[num_words] = NULL; // Null-terminate the array
-    // printf("%s -> %s",words[num_words], words[num_words-1]);
-    // for(int i = 1; i < num_words; i++){
-    //     replace_vars(words[i], singleQ, space);
-    //     replace_vars(words[i], doubleQ, space);
-    //     // printf("%s\n",words[i]);
-    // }
     command_size = num_words;
     return words;
 }
+
+// Exporting Vaariables function.
 void getVar(char *input){
     char *equal = "=";
     char *result = strstr(input, equal);
@@ -194,17 +183,21 @@ void getVar(char *input){
     } else {
         left = NULL; // If there's no left part, set it to NULL
     }
+
+    // Invalid export 
     if(left == NULL || right == NULL){
         return;
     }
+
+    // Set variables.
     globalVariables[variables_size] = left;
     gv_values[variables_size] = right;
     variables_size++;
-    // printf("variable name: %s , variable value = %s,  varsSize = %d \n", left, right, variables_size);
 }
 
-
+// Concatenate Strings Function.
 char *concatenateStrings(const char *str1, const char *str2) {
+
     // Calculate the length of the concatenated string
     size_t len1 = strlen(str1);
     size_t len2 = strlen(str2);
@@ -225,25 +218,29 @@ char *concatenateStrings(const char *str1, const char *str2) {
 
     return result;
 }
+
+// Evaluate Expression.
 void evaluate_expression(char *string){
     char *space = " ";
-    // printf("var size: %d\n", variables_size);
     for(int i = 0; i < variables_size; i++){
         char *substring = "$";
-        // printf("%s\n", globalVariables[i]);
-        // strcat(substring,globalVariables[i]);
         substring = concatenateStrings(substring, globalVariables[i]);
-        // printf("")
-        // substring = (substring, space);
         char *replacement = gv_values[i];
+
+        // check for each varaible in the expression.
         replace_vars(string, substring, replacement);
     }
-    // printf("%s", string);
 }
+
+// Execute Shell Built-in functions.
 void execute_shell_builtin(char** command){
+
+    // CD Command.
     if(strcmp(command[0], "cd") == 0){
         chdir(command[1]);
     }
+
+    //  Echo Command.
     else if(strcmp(command[0], "echo") == 0){
         for(int i = 1;;i++){
             if(command[i] == NULL)break;
@@ -251,6 +248,8 @@ void execute_shell_builtin(char** command){
         }
         printf("\n");
     }
+
+    // Export Command.
     else if(strcmp(command[0], "export") == 0){
         getVar(command[1]);
         char *space = " ";
@@ -261,35 +260,46 @@ void execute_shell_builtin(char** command){
     }
 }
 
+// Shell main process.
 void shell(){
     bool flag = true;
     do {
+        // Take input
         char *line = read_input();
+
+        // Write current command to history file.
         history = fopen("history.txt", "a");
         write_to_file(line, history);
-        // printf("%s\n", line);
+
+        // Evaluate Expression.
         evaluate_expression(line);
-        // printf("%s\n", line);
+
+        // Parse input.
         char **command = parseInput(line);
+
+        // Check for empty command.
         if(command_size == 0)continue;
-        // for(int i = 0; i < command_size; i++){
-        // //     // evaluate_expression(command[i]);
-        //     printf("commands: %s\n", command[i]);
-        // }
+
+        // Check for Built-in shell commands.
         if(strcmp(command[0], "export") == 0 || strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0){
             execute_shell_builtin(command);
             continue;
         }
+
+        // Check for exit command.
         if(strcmp(command[0], "exit") == 0){
             flag = false;
             exit(0);
         }
+
+        // Handling Background Processes Execution.
         if(strcmp(command[command_size-1] ,"&") == 0){
             printf("Background\n");
-            // printf("%s\n", command[command_size-1]);
             command[command_size-1] = NULL;
-            // printf("%s\n", command[command_size-2]);
+
             int pid = fork();
+
+            // Child Process.
             if(pid == 0){
                 if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0 || strcmp(command[0], "export") == 0 ){
                     exit(0);
@@ -301,8 +311,12 @@ void shell(){
                 }
             }
         }
+
+        // Handling Foreground Processes Execution.
         else{
             int pid = fork();
+
+            // Child Process.
             if(pid == 0){
                 if(strcmp(command[0], "cd") == 0 || strcmp(command[0], "echo") == 0 || strcmp(command[0], "export") == 0 ){
                     exit(0);
@@ -314,6 +328,7 @@ void shell(){
                     exit(0);
                 }
             }
+            // Parent Process.
             else{
                 int status;
                 waitpid(pid, &status, 0);
@@ -322,8 +337,9 @@ void shell(){
     }
     while(flag);
 }
+
+// Main Function.
 int main(){
     parent_main();
-    // shell();
     return 0;
 }

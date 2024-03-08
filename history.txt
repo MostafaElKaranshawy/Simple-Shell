@@ -1,19 +1,11 @@
-pwd
 ls
-ls -l
+ls -a -l -h
 export x="-a -l -h"
+echo $x
 ls $x
 gedit
-gedit &
-pwd
-gedit
-pwd
-gedit
-gedit &
-ls
-pwd
-gedit
-gedit &
 ls
 gedit &
+firefox &
+ls
 ls
